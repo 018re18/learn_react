@@ -1,0 +1,13 @@
+.board-container {
+  display: flex;
+  flex-direction: column;
+  border: 3px solid #808080;
+  width: fit-content;
+  margin: 20px auto;
+  background-color: #a0a0a0;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.board-row {
+  display: flex;
+}
