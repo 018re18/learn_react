@@ -23,12 +23,12 @@
 
 .board-container {
   display: flex;
-  flex-direction: column; /* 縦に並べる */
-  border: 2px solid #5a3c21; /* 盤全体の縁 */
-  width: fit-content; /* 内容に合わせて幅を調整 */
-  margin: 20px auto; /* 中央寄せ */
+  flex-direction: column;
+  border: 2px solid #5a3c21;
+  width: fit-content;
+  margin: 20px auto;
 }
 
 .board-row {
-  display: flex; /* 横に並べる */
+  display: flex;
 }

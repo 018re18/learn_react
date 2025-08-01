@@ -2,21 +2,66 @@ import React, { useState, useEffect } from 'react';
 import Board from './Board';
 import './Game.css';
 
-const BOARD_ROWS = 20;
-const BOARD_COLS = 20;
-const NUM_MINES = 50;
-
 function Game() {
+    const [boardRows, setBoardRows] = useState(9);
+    const [boardCols, setBoardCols] = useState(9);
+    const [numMines, setNumMines] = useState(10);
+
     const [board,setBoard] = useState([]);
     const [gameState,setGameState] = useState('playing');
     const [operate,setOperate] = useState('dig');
-    const [minesNum,setMineNum] = useState(NUM_MINES);
+    const [minesNum,setMineNum] = useState(numMines);
+    const [inGame,setInGame] = useState(false);
+
+    useEffect(() => {
+        initBoard();
+    },[boardRows,boardCols,numMines]);
+
+    const setMine = (newBoard, row, col) => {
+        let mineSeted = 0;
+        while(mineSeted < numMines){
+            const randomRow = Math.floor(Math.random()*boardRows);
+            const randomCol = Math.floor(Math.random()*boardCols);
+
+            if(!newBoard[randomRow][randomCol].Mine &&
+                (Math.abs(randomRow - row) > 1 || Math.abs(randomCol - col) > 1)
+            ){
+                newBoard[randomRow][randomCol].Mine = true;
+                mineSeted++;
+            }
+        }
+        for (let r = 0; r < boardRows; r++){
+            for (let c = 0; c < boardCols; c++){
+                if(!newBoard[r][c].Mine){
+                    let count = 0;
+                    for (let dr = -1; dr <= 1; dr++){
+                        for (let dc = -1; dc <=1; dc++){
+                            if(dr === 0 && dc === 0)
+                                continue;
+                            const neighborRow = r + dr;
+                            const neighborCol = c + dc;
+
+                            if (
+                                neighborRow >= 0 && neighborRow < boardRows &&
+                                neighborCol >= 0 && neighborCol < boardCols
+                            ){
+                                if (newBoard[neighborRow][neighborCol].Mine){
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                    newBoard[r][c].mineCount = count;
+                }
+            }
+        }
+    };
 
     const initBoard = () => {
-        let newBoard = Array(BOARD_ROWS)
+        let newBoard = Array(boardRows)
         .fill(null)
         .map((_,rowIndex) =>
-            Array(BOARD_COLS)
+            Array(boardCols)
                 .fill(null)
                 .map((_,colIndex) => ({
                     id: `${rowIndex}-${colIndex}`,
@@ -29,57 +74,19 @@ function Game() {
                     mineCount: 0,
                 }))
         );
-        let minesPlaced = 0;
-        while(minesPlaced < NUM_MINES){
-            const randomRow = Math.floor(Math.random()*BOARD_ROWS);
-            const randomCol = Math.floor(Math.random()*BOARD_COLS);
-
-            if(!newBoard[randomRow][randomCol].Mine){
-                newBoard[randomRow][randomCol].Mine = true;
-                minesPlaced++;
-            }
-        }
-        for (let r = 0; r < BOARD_ROWS; r++){
-            for (let c = 0; c < BOARD_COLS; c++){
-                if(!newBoard[r][c].Mine){
-                    let count = 0;
-                    for (let dr = -1; dr <= 1; dr++){
-                        for (let dc = -1; dc <=1; dc++){
-                            if(dr === 0 && dc === 0)
-                                continue;
-                            const neighborRow = r + dr;
-                            const neighborCol = c + dc;
-
-                            if (
-                                neighborRow >= 0 && neighborRow < BOARD_ROWS &&
-                                neighborCol >= 0 && neighborCol < BOARD_COLS
-                            ){
-                                if (newBoard[neighborRow][neighborCol].Mine){
-                                    count++;
-                                }
-                            }
-                        }
-                    }
-                    newBoard[r][c].mineCount = count;
-                }
-            }
-        }
-
         setBoard(newBoard);
         setGameState('playing');
-        setMineNum(NUM_MINES);
+        setOperate('dig');
+        setMineNum(numMines);
+        setInGame(false);
     };
-
-    useEffect(() => {
-        initBoard();
-    },[]);
 
     const checkWin = (currentBoard) => {
         if(gameState !== 'playing')
             return;
         let allNonMine = true;
-        for (let r = 0; r < BOARD_ROWS; r++){
-            for (let c = 0; c < BOARD_COLS; c++){
+        for (let r = 0; r < boardRows; r++){
+            for (let c = 0; c < boardCols; c++){
                 const cell = currentBoard[r][c];
                 if(!cell.Mine && !cell.opened){
                     allNonMine = false;
@@ -105,7 +112,7 @@ function Game() {
 
     const chainOpen = (r, c, currentBoard) => {
         if(
-            r < 0 || r >= BOARD_ROWS || c < 0 || c >= BOARD_COLS ||
+            r < 0 || r >= boardRows || c < 0 || c >= boardCols ||
             currentBoard[r][c].opened || currentBoard[r][c].Flag ||
             currentBoard[r][c].Question || currentBoard[r][c].Mine
         ){
@@ -136,6 +143,17 @@ function Game() {
         const cell = newBoard[row][col];
         if(cell.opened)
             return;
+        if(!inGame){
+            setMine(newBoard, row, col);
+            setInGame(true);
+            if(newBoard[row][col].mineCount === 0) {
+                chainOpen(row, col, newBoard);
+            } else {
+                newBoard[row][col].opened = true;
+            }
+            setBoard(newBoard);
+            return;
+        }
 
         switch(operate){
             case 'dig':
@@ -143,8 +161,8 @@ function Game() {
                  return;
                 if(cell.Mine){
                   setGameState('lose');
-                  for (let r = 0; r < BOARD_ROWS; r++){
-                    for (let c = 0; c < BOARD_COLS; c++){
+                  for (let r = 0; r < boardRows; r++){
+                    for (let c = 0; c < boardCols; c++){
                         if(newBoard[r][c].Mine){
                             newBoard[r][c].opened = true;
                         }
@@ -192,8 +210,19 @@ function Game() {
         }
     };
 
+    const changeMap = (rows, cols, mines) => {
+        setBoardRows(rows);
+        setBoardCols(cols);
+        setNumMines(mines);
+    };
+
     return (
         <div className = "game-container">
+            <div>
+                <button onClick={() => changeMap(9,9,10)}>9*9</button>
+                <button onClick={() => changeMap(15,15,30)}>15*15</button>
+                <button onClick={() => changeMap(20,20,50)}>20*20</button>
+            </div>
             <div className = "game-info">
                 <div className = "status-display">
                     {gameState === 'playing' && `残りの爆弾の数: ${minesNum}`}
